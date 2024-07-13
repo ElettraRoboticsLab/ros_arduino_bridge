@@ -33,23 +33,30 @@
   static const int8_t ENC_STATES [] = {0,1,-1,0,-1,0,0,1,1,0,0,-1,0,-1,1,0};  //encoder lookup table
     
   /* Interrupt routine for LEFT encoder, taking care of actual counting */
-  ISR (PCINT2_vect){
+ 
+ /* ISR (PCINT1_vect){
   	static uint8_t enc_last=0;
         
 	enc_last <<=2; //shift previous state two places
-	enc_last |= (PIND & (3 << 2)) >> 2; //read the current state into lowest 2 bits
-  
+	//enc_last |= (PIND & (3 << 2)) >> 2; //read the current state into lowest 2 bits
+  enc_last |= (PINB & (3 << 4)) >> 4;
   	left_enc_pos += ENC_STATES[(enc_last & 0x0f)];
-  }
+  }*/
+  
   
   /* Interrupt routine for RIGHT encoder, taking care of actual counting */
-  ISR (PCINT1_vect){
-        static uint8_t enc_last=0;
+  ISR (PCINT0_vect){
+        static uint8_t enc_last_sx=0;
+        static uint8_t enc_last_dx=0;
           	
-	enc_last <<=2; //shift previous state two places
-	enc_last |= (PINC & (3 << 4)) >> 4; //read the current state into lowest 2 bits
-  
-  	right_enc_pos += ENC_STATES[(enc_last & 0x0f)];
+	enc_last_dx <<=2; //shift previous state two places
+	//enc_last |= (PINC & (3 << 4)) >> 4; //read the current state into lowest 2 bits
+  enc_last_dx |= (PINB & (3 << 6)) >>6;
+  right_enc_pos += ENC_STATES[(enc_last_dx & 0x0f)];
+
+   enc_last_sx <<=2; //shift previous state two places
+    enc_last_sx |= (PINB & (3 << 4)) >> 4;
+   left_enc_pos += ENC_STATES[(enc_last_sx & 0x0f)];
   }
   
   /* Wrap the encoder reading function */
@@ -79,4 +86,3 @@ void resetEncoders() {
 }
 
 #endif
-

@@ -63,7 +63,8 @@
    #define ARDUINO_ENC_COUNTER
 
    /* L298 Motor driver*/
-   #define L298_MOTOR_DRIVER
+   //#define L298_MOTOR_DRIVER
+   #define L6207_MOTOR_DRIVER
 #endif
 
 //#define USE_SERVOS  // Enable use of PWM servos as defined in servos.h
@@ -160,51 +161,51 @@ int runCommand() {
   
   switch(cmd) {
   case GET_BAUDRATE:
-    Serial.println(BAUDRATE);
+    Serial1.println(BAUDRATE);
     break;
   case ANALOG_READ:
-    Serial.println(analogRead(arg1));
+    Serial1.println(analogRead(arg1));
     break;
   case DIGITAL_READ:
-    Serial.println(digitalRead(arg1));
+    Serial1.println(digitalRead(arg1));
     break;
   case ANALOG_WRITE:
     analogWrite(arg1, arg2);
-    Serial.println("OK"); 
+    Serial1.println("OK"); 
     break;
   case DIGITAL_WRITE:
     if (arg2 == 0) digitalWrite(arg1, LOW);
     else if (arg2 == 1) digitalWrite(arg1, HIGH);
-    Serial.println("OK"); 
+    Serial1.println("OK"); 
     break;
   case PIN_MODE:
     if (arg2 == 0) pinMode(arg1, INPUT);
     else if (arg2 == 1) pinMode(arg1, OUTPUT);
-    Serial.println("OK");
+    Serial1.println("OK");
     break;
   case PING:
-    Serial.println(Ping(arg1));
+    Serial1.println(Ping(arg1));
     break;
 #ifdef USE_SERVOS
   case SERVO_WRITE:
     servos[arg1].setTargetPosition(arg2);
-    Serial.println("OK");
+    Serial1.println("OK");
     break;
   case SERVO_READ:
-    Serial.println(servos[arg1].getServo().read());
+    Serial1.println(servos[arg1].getServo().read());
     break;
 #endif
     
 #ifdef USE_BASE
   case READ_ENCODERS:
-    Serial.print(readEncoder(LEFT));
-    Serial.print(" ");
-    Serial.println(readEncoder(RIGHT));
+    Serial1.print(readEncoder(LEFT));
+    Serial1.print(" ");
+    Serial1.println(readEncoder(RIGHT));
     break;
    case RESET_ENCODERS:
     resetEncoders();
     resetPID();
-    Serial.println("OK");
+    Serial1.println("OK");
     break;
   case MOTOR_SPEEDS:
     /* Reset the auto stop timer */
@@ -217,7 +218,7 @@ int runCommand() {
     else moving = 1;
     leftPID.TargetTicksPerFrame = arg1;
     rightPID.TargetTicksPerFrame = arg2;
-    Serial.println("OK"); 
+    Serial1.println("OK"); 
     break;
   case MOTOR_RAW_PWM:
     /* Reset the auto stop timer */
@@ -225,7 +226,7 @@ int runCommand() {
     resetPID();
     moving = 0; // Sneaky way to temporarily disable the PID
     setMotorSpeeds(arg1, arg2);
-    Serial.println("OK"); 
+    Serial1.println("OK"); 
     break;
   case UPDATE_PID:
     while ((str = strtok_r(p, ":", &p)) != '\0') {
@@ -236,41 +237,41 @@ int runCommand() {
     Kd = pid_args[1];
     Ki = pid_args[2];
     Ko = pid_args[3];
-    Serial.println("OK");
+    Serial1.println("OK");
     break;
 #endif
   default:
-    Serial.println("Invalid Command");
+    Serial1.println("Invalid Command");
     break;
   }
 }
 
 /* Setup function--runs once at startup. */
 void setup() {
-  Serial.begin(BAUDRATE);
-
+  Serial1.begin(BAUDRATE);
 // Initialize the motor controller if used */
 #ifdef USE_BASE
   #ifdef ARDUINO_ENC_COUNTER
     //set as inputs
-    DDRD &= ~(1<<LEFT_ENC_PIN_A);
-    DDRD &= ~(1<<LEFT_ENC_PIN_B);
-    DDRC &= ~(1<<RIGHT_ENC_PIN_A);
-    DDRC &= ~(1<<RIGHT_ENC_PIN_B);
+    DDRB &= ~(1<<LEFT_ENC_PIN_A);
+    DDRB &= ~(1<<LEFT_ENC_PIN_B);
+    DDRB &= ~(1<<RIGHT_ENC_PIN_A);
+    DDRB &= ~(1<<RIGHT_ENC_PIN_B);
     
     //enable pull up resistors
-    PORTD |= (1<<LEFT_ENC_PIN_A);
-    PORTD |= (1<<LEFT_ENC_PIN_B);
-    PORTC |= (1<<RIGHT_ENC_PIN_A);
-    PORTC |= (1<<RIGHT_ENC_PIN_B);
+    PORTB |= (1<<LEFT_ENC_PIN_A);
+    PORTB |= (1<<LEFT_ENC_PIN_B);
+    PORTB |= (1<<RIGHT_ENC_PIN_A);
+    PORTB |= (1<<RIGHT_ENC_PIN_B);
     
     // tell pin change mask to listen to left encoder pins
-    PCMSK2 |= (1 << LEFT_ENC_PIN_A)|(1 << LEFT_ENC_PIN_B);
+    PCMSK0 |= (1 << LEFT_ENC_PIN_A)|(1 << LEFT_ENC_PIN_B); // su ATMEL328 è PCMSK2 maschera per il PORTC
+    //i pint INT0 - INT7 sono sul PortB --> riassegnare i pin ENCODER su PORTB
     // tell pin change mask to listen to right encoder pins
-    PCMSK1 |= (1 << RIGHT_ENC_PIN_A)|(1 << RIGHT_ENC_PIN_B);
+    PCMSK0 |= (1 << RIGHT_ENC_PIN_A)|(1 << RIGHT_ENC_PIN_B);
     
     // enable PCINT1 and PCINT2 interrupt in the general interrupt mask
-    PCICR |= (1 << PCIE1) | (1 << PCIE2);
+    PCICR |= (1 << PCIE0);     //su 32U4 c'è un solo vettore di int esterni   // (1 << PCIE1) | (1 << PCIE2);
   #endif
   initMotorController();
   resetPID();
@@ -286,6 +287,17 @@ void setup() {
           servoInitPosition[i]);
     }
   #endif
+  //ELETTRINO
+  #define PUSH    7  // PULSANTE
+  #define USERLED 13
+  pinMode(PUSH, INPUT);
+  pinMode(USERLED, OUTPUT);
+  
+  digitalWrite(USERLED, HIGH);
+  delay(1000);
+  digitalWrite(USERLED, LOW);
+  // Serial1.println("OK");
+  
 }
 
 /* Enter the main loop.  Read and parse input from the serial port
@@ -293,10 +305,11 @@ void setup() {
    interval and check for auto-stop conditions.
 */
 void loop() {
-  while (Serial.available() > 0) {
-    
+  while (Serial1.available() > 0) {
+
+    digitalWrite(USERLED, HIGH);
     // Read the next character
-    chr = Serial.read();
+    chr = Serial1.read();
 
     // Terminate a command with a CR
     if (chr == 13) {
@@ -331,6 +344,7 @@ void loop() {
         index++;
       }
     }
+    digitalWrite(USERLED, LOW);
   }
   
 // If we are using base control, run a PID calculation at the appropriate intervals
@@ -355,4 +369,3 @@ void loop() {
   }
 #endif
 }
-

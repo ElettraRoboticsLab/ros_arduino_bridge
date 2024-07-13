@@ -55,10 +55,14 @@
     setMotorSpeed(LEFT, leftSpeed);
     setMotorSpeed(RIGHT, rightSpeed);
   }
-#elif defined L298_MOTOR_DRIVER
+#elif defined L6207_MOTOR_DRIVER
   void initMotorController() {
-    digitalWrite(RIGHT_MOTOR_ENABLE, HIGH);
-    digitalWrite(LEFT_MOTOR_ENABLE, HIGH);
+    pinMode(RIGHT_MOTOR_FORWARD, OUTPUT);
+    pinMode(RIGHT_MOTOR_BACKWARD, OUTPUT);
+    pinMode(LEFT_MOTOR_FORWARD, OUTPUT);
+    pinMode(LEFT_MOTOR_BACKWARD, OUTPUT);  
+  //  digitalWrite(RIGHT_MOTOR_ENABLE, HIGH);
+  //  digitalWrite(LEFT_MOTOR_ENABLE, HIGH);
   }
   
   void setMotorSpeed(int i, int spd) {
@@ -73,12 +77,23 @@
       spd = 255;
     
     if (i == LEFT) { 
-      if      (reverse == 0) { analogWrite(LEFT_MOTOR_FORWARD, spd); analogWrite(LEFT_MOTOR_BACKWARD, 0); }
-      else if (reverse == 1) { analogWrite(LEFT_MOTOR_BACKWARD, spd); analogWrite(LEFT_MOTOR_FORWARD, 0); }
+      analogWrite(LEFT_MOTOR_SPEED, spd); 
+      
+      if      (reverse == 0) {  
+        digitalWrite(LEFT_MOTOR_FORWARD, 1); 
+        digitalWrite(LEFT_MOTOR_BACKWARD, 0); }
+      else {//if (reverse == 1) { 
+        digitalWrite(LEFT_MOTOR_BACKWARD, 1); 
+        analogWrite(LEFT_MOTOR_FORWARD, 0); }
     }
     else /*if (i == RIGHT) //no need for condition*/ {
-      if      (reverse == 0) { analogWrite(RIGHT_MOTOR_FORWARD, spd); analogWrite(RIGHT_MOTOR_BACKWARD, 0); }
-      else if (reverse == 1) { analogWrite(RIGHT_MOTOR_BACKWARD, spd); analogWrite(RIGHT_MOTOR_FORWARD, 0); }
+      analogWrite(RIGHT_MOTOR_SPEED, spd); 
+      if      (reverse == 0) { 
+        digitalWrite(RIGHT_MOTOR_FORWARD, 1); 
+        digitalWrite(RIGHT_MOTOR_BACKWARD, 0); }
+      else if (reverse == 1) { 
+        digitalWrite(RIGHT_MOTOR_BACKWARD, 1); 
+        digitalWrite(RIGHT_MOTOR_FORWARD, 0); }
     }
   }
   
